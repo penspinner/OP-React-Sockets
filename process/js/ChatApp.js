@@ -6,7 +6,7 @@ class ChatApp extends React.Component
     constructor(props)
     {
         super(props);
-        this.state = {socket: io(), messages: ['test messages']};
+        this.state = {socket: io(), messages: ['test messages'], usersTyping: []};
         console.log(this.state.socket);
 
         this.onConnect();
@@ -20,7 +20,7 @@ class ChatApp extends React.Component
         socket.on('connect', () =>
         {
             // console.log(socket.id);
-            socket.emit('userConnected', {user:socket.id});
+            socket.emit('userConnected', {userID: socket.id});
         });
     }
 
@@ -34,7 +34,7 @@ class ChatApp extends React.Component
             socket.emit('userTyping', {typing: false});
 
             /* Let others know you went offline */
-            
+
         });
     }
 
@@ -67,16 +67,10 @@ class ChatApp extends React.Component
         /* When user is typing, emit typing to server. */
         message.addEventListener('input', (e) =>
         {
-            /* Make sure message is not empty. */
-            if (message.value)
-            {
-                /* Tell other users that this user is typing. */
-                socket.emit('userTyping', {typing: true});
-            } else
-            {
-                /* Tell other users that this user is not typing. */
-                socket.emit('userTyping', {typing: false});
-            }
+            let typing = message.value ? true : false;
+
+            /* Tell other users that this user is typing or not typing. */
+            socket.emit('userTyping', {username: 'TempUsername', typing: typing});
         });
 
         /* On form submit, emit post message to server. */
@@ -95,34 +89,68 @@ class ChatApp extends React.Component
     initSocketOn(socket, chatMessages, message)
     {
         /* Update messages in chat box. */
-        socket.on('updateMessages', (data) =>
-        {
-            let messages = this.state.messages;
-            messages.push(data.message);
-            console.log(data);
-            console.log(messages);
-            
-            this.setState({messages: messages});
-        });
+        socket.on('updateMessages', (data) => {this.onUpdateMessages(data);});
 
         /* When another user is online, tell user */
-        socket.on('userConnected', (data) =>
-        {
-            console.log(data.user + ' connected');
-        });
+        socket.on('userConnected', (data) => {this.onUserConnected(data);});
 
         /* When another user went offline, tell user */
-        socket.on('userDisconnected', (data) =>
-        {
-            console.log(data);
-        });
+        socket.on('userDisconnected', (data) => {this.onUserDisconnected(data);});
 
         /* When another user is typing, tell user */
-        socket.on('userTyping', (data) =>
-        {
-            console.log(data.typing);
-        });
+        socket.on('userTyping', (data) => {this.onUserTyping(data);});
     }
+
+    /* ----------------------On socket methods-------------------- */
+
+    onUpdateMessages(data)
+    {
+        let messages = this.state.messages;
+        messages.push(data.message);
+        console.log(data);
+        console.log(messages);
+        
+        this.setState({messages: messages});
+    }
+
+    onUserConnected(data)
+    {
+        console.log(data.userID + ' connected');
+    }
+
+    onUserDisconnected(data)
+    {
+        console.log(data);
+    }
+
+    onUserTyping(data)
+    {
+        console.log(data.typing + ' user typing');
+        let usersTyping = this.state.usersTyping;
+        let index = usersTyping.indexOf(data.username);
+        console.log('index: ' + index);
+
+        /* Make sure a username has been passed through. */
+        if (data.username)
+        {
+
+            /* Make sure the user is not already typing. */
+            if (index === -1 && data.typing)
+                /* Add user to the list. */
+                usersTyping.push(data.username);
+            
+            /* Otherwise, remove the name from the list. */
+            else if (index !== -1 && !data.typing)
+                usersTyping.splice(index, 1);
+            else
+                console.log(data.username + ' is already not typing.');
+        }
+
+        /* Rerender the users typing. */
+        this.setState({usersTyping: usersTyping});
+    }
+
+    /* ------------------End on socket methods-------------------- */
 
     convertMessages(e, i)
     {
@@ -134,10 +162,16 @@ class ChatApp extends React.Component
     render()
     {
         let messages = this.state.messages.map(this.convertMessages);
+        let usersTyping = this.state.usersTyping.join(',');
+        console.log(this.state.usersTyping);
+        usersTyping += usersTyping ? ' is typing...' : '';
 
         return (
             <div className="center-block">
-                <div id="chatMessages">{messages}</div>
+                <div id="chatMessages">
+                    {messages}
+                    <span className="typing">{usersTyping}</span>
+                </div>
                 <form name="chatForm">
                     <div className="form-group">
                         <input type="text" id="message" className="form-control" required></input>

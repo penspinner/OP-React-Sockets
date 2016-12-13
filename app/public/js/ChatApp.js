@@ -20361,10 +20361,11 @@ var ChatApp = function (_React$Component) {
 
         var _this = _possibleConstructorReturn(this, (ChatApp.__proto__ || Object.getPrototypeOf(ChatApp)).call(this, props));
 
-        _this.state = { socket: io(), messages: ['test messages'] };
+        _this.state = { socket: io(), messages: ['test messages'], usersTyping: [] };
         console.log(_this.state.socket);
 
         _this.onConnect();
+        _this.onDisconnect();
         return _this;
     }
 
@@ -20377,7 +20378,21 @@ var ChatApp = function (_React$Component) {
             var socket = this.state.socket;
             socket.on('connect', function () {
                 // console.log(socket.id);
-                socket.emit('userConnected', { user: socket.id });
+                socket.emit('userConnected', { userID: socket.id });
+            });
+        }
+
+        /* On disconnect, emit disconnection to other users. */
+
+    }, {
+        key: 'onDisconnect',
+        value: function onDisconnect() {
+            var socket = this.state.socket;
+            socket.on('disconnect', function () {
+                /* Let others know that you are not typing anymore. */
+                socket.emit('userTyping', { typing: false });
+
+                /* Let others know you went offline */
             });
         }
 
@@ -20411,14 +20426,10 @@ var ChatApp = function (_React$Component) {
         value: function initEventListeners(socket, chatMessages, message) {
             /* When user is typing, emit typing to server. */
             message.addEventListener('input', function (e) {
-                /* Make sure message is not empty. */
-                if (message.value) {
-                    /* Tell other users that this user is typing. */
-                    socket.emit('userTyping', { typing: true });
-                } else {
-                    /* Tell other users that this user is not typing. */
-                    socket.emit('userTyping', { typing: false });
-                }
+                var typing = message.value ? true : false;
+
+                /* Tell other users that this user is typing or not typing. */
+                socket.emit('userTyping', { username: 'TempUsername', typing: typing });
             });
 
             /* On form submit, emit post message to server. */
@@ -20441,24 +20452,73 @@ var ChatApp = function (_React$Component) {
 
             /* Update messages in chat box. */
             socket.on('updateMessages', function (data) {
-                var messages = _this2.state.messages;
-                messages.push(data.message);
-                console.log(data);
-                console.log(messages);
-
-                _this2.setState({ messages: messages });
+                _this2.onUpdateMessages(data);
             });
 
             /* When another user is online, tell user */
             socket.on('userConnected', function (data) {
-                console.log(data.user + ' connected');
+                _this2.onUserConnected(data);
+            });
+
+            /* When another user went offline, tell user */
+            socket.on('userDisconnected', function (data) {
+                _this2.onUserDisconnected(data);
             });
 
             /* When another user is typing, tell user */
             socket.on('userTyping', function (data) {
-                console.log(data.typing);
+                _this2.onUserTyping(data);
             });
         }
+
+        /* ----------------------On socket methods-------------------- */
+
+    }, {
+        key: 'onUpdateMessages',
+        value: function onUpdateMessages(data) {
+            var messages = this.state.messages;
+            messages.push(data.message);
+            console.log(data);
+            console.log(messages);
+
+            this.setState({ messages: messages });
+        }
+    }, {
+        key: 'onUserConnected',
+        value: function onUserConnected(data) {
+            console.log(data.userID + ' connected');
+        }
+    }, {
+        key: 'onUserDisconnected',
+        value: function onUserDisconnected(data) {
+            console.log(data);
+        }
+    }, {
+        key: 'onUserTyping',
+        value: function onUserTyping(data) {
+            console.log(data.typing + ' user typing');
+            var usersTyping = this.state.usersTyping;
+            var index = usersTyping.indexOf(data.username);
+            console.log('index: ' + index);
+
+            /* Make sure a username has been passed through. */
+            if (data.username) {
+
+                /* Make sure the user is not already typing. */
+                if (index === -1 && data.typing)
+                    /* Add user to the list. */
+                    usersTyping.push(data.username);
+
+                    /* Otherwise, remove the name from the list. */
+                else if (index !== -1 && !data.typing) usersTyping.splice(index, 1);else console.log(data.username + ' is already not typing.');
+            }
+
+            /* Rerender the users typing. */
+            this.setState({ usersTyping: usersTyping });
+        }
+
+        /* ------------------End on socket methods-------------------- */
+
     }, {
         key: 'convertMessages',
         value: function convertMessages(e, i) {
@@ -20472,6 +20532,9 @@ var ChatApp = function (_React$Component) {
         key: 'render',
         value: function render() {
             var messages = this.state.messages.map(this.convertMessages);
+            var usersTyping = this.state.usersTyping.join(',');
+            console.log(this.state.usersTyping);
+            usersTyping += usersTyping ? ' is typing...' : '';
 
             return _react2.default.createElement(
                 'div',
@@ -20479,7 +20542,12 @@ var ChatApp = function (_React$Component) {
                 _react2.default.createElement(
                     'div',
                     { id: 'chatMessages' },
-                    messages
+                    messages,
+                    _react2.default.createElement(
+                        'span',
+                        { className: 'typing' },
+                        usersTyping
+                    )
                 ),
                 _react2.default.createElement(
                     'form',
