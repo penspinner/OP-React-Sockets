@@ -26,9 +26,22 @@ socketIO.on('connection', (socket) =>
 {
     console.log('User connected.');
 
-    socket.on('postMessage', (data) =>
+    socket.on('sendMessage', (data) =>
     {
+        console.log('send message');
         socketIO.emit('updateMessages', data);
+    });
+
+    socket.on('userConnected', (data) =>
+    {
+        console.log('another user connected: ' + socket.id);
+        socket.broadcast.emit('userConnected', data);
+    });
+
+    socket.on('userTyping', (data) =>
+    {
+        console.log('user typing');
+        socket.broadcast.emit('userTyping', data);
     });
 
     socket.on('disconnect', () => 

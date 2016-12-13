@@ -20363,45 +20363,115 @@ var ChatApp = function (_React$Component) {
 
         _this.state = { socket: io(), messages: ['test messages'] };
         console.log(_this.state.socket);
+
+        _this.onConnect();
         return _this;
     }
 
-    /* Runs when component has been rendered to DOM. */
+    /* On connect, emit connection to other users. */
 
 
     _createClass(ChatApp, [{
+        key: 'onConnect',
+        value: function onConnect() {
+            var socket = this.state.socket;
+            socket.on('connect', function () {
+                // console.log(socket.id);
+                socket.emit('userConnected', { user: socket.id });
+            });
+        }
+
+        /* Runs when component has been rendered to DOM. */
+
+    }, {
         key: 'componentDidMount',
         value: function componentDidMount() {
             console.log('did mount');
+
             var socket = this.state.socket,
                 chatMessages = document.getElementById('chatMessages'),
                 message = document.getElementById('message');
 
-            /* On form submit, emit post message to server. */
-            socket.on('connect', function () {
+            /* Make sure there is a socket in the state. */
+            if (socket) {
+                /* Get the chat form */
                 var chatForm = document.forms.chatForm;
 
                 if (chatForm) {
-                    chatForm.addEventListener('submit', function (e) {
-                        e.preventDefault();
-                        socket.emit('postMessage', { message: message.value });
-                        message.value = '';
-                        message.focus();
-                    });
+                    this.initEventListeners(socket, chatMessages, message);
+                    this.initSocketOn(socket, chatMessages, message);
+                }
+            }
+        }
 
-                    socket.on('updateMessages', function (data) {
-                        console.log(data);
-                        // this.setState({messages: data});
-                    });
+        /* Add event listeners for typing and sending messages */
+
+    }, {
+        key: 'initEventListeners',
+        value: function initEventListeners(socket, chatMessages, message) {
+            /* When user is typing, emit typing to server. */
+            message.addEventListener('input', function (e) {
+                /* Make sure message is not empty. */
+                if (message.value) {
+                    /* Tell other users that this user is typing. */
+                    socket.emit('userTyping', { typing: true });
+                } else {
+                    /* Tell other users that this user is not typing. */
+                    socket.emit('userTyping', { typing: false });
                 }
             });
+
+            /* On form submit, emit post message to server. */
+            chatForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                /* Sends message to server for it to emit and then refocuses on input. */
+                socket.emit('sendMessage', { message: message.value });
+                message.value = '';
+                message.focus();
+            });
+        }
+
+        /* Listen for emittions from server for incoming messages. */
+
+    }, {
+        key: 'initSocketOn',
+        value: function initSocketOn(socket, chatMessages, message) {
+            var _this2 = this;
+
+            /* Update messages in chat box. */
+            socket.on('updateMessages', function (data) {
+                var messages = _this2.state.messages;
+                messages.push(data.message);
+                console.log(data);
+                console.log(messages);
+
+                _this2.setState({ messages: messages });
+            });
+
+            /* When another user is online, tell user */
+            socket.on('userConnected', function (data) {
+                console.log(data.user + ' connected');
+            });
+
+            /* When another user is typing, tell user */
+            socket.on('userTyping', function (data) {
+                console.log(data.typing);
+            });
+        }
+    }, {
+        key: 'convertMessages',
+        value: function convertMessages(e, i) {
+            return _react2.default.createElement(
+                'div',
+                { key: i },
+                e
+            );
         }
     }, {
         key: 'render',
         value: function render() {
-            var messages = this.state.messages.map(function (e) {
-                return true;
-            });
+            var messages = this.state.messages.map(this.convertMessages);
 
             return _react2.default.createElement(
                 'div',
@@ -20417,7 +20487,7 @@ var ChatApp = function (_React$Component) {
                     _react2.default.createElement(
                         'div',
                         { className: 'form-group' },
-                        _react2.default.createElement('input', { type: 'text', name: 'message', id: 'message', className: 'form-control', required: true }),
+                        _react2.default.createElement('input', { type: 'text', id: 'message', className: 'form-control', required: true }),
                         _react2.default.createElement(
                             'button',
                             { type: 'submit', className: 'btn btn-primary' },

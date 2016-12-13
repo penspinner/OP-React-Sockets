@@ -37,8 +37,19 @@ socketIO.attach(server);
 socketIO.on('connection', function (socket) {
     console.log('User connected.');
 
-    socket.on('postMessage', function (data) {
+    socket.on('sendMessage', function (data) {
+        console.log('send message');
         socketIO.emit('updateMessages', data);
+    });
+
+    socket.on('userConnected', function (data) {
+        console.log('another user connected: ' + socket.id);
+        socket.broadcast.emit('userConnected', data);
+    });
+
+    socket.on('userTyping', function (data) {
+        console.log('user typing');
+        socket.broadcast.emit('userTyping', data);
     });
 
     socket.on('disconnect', function () {
