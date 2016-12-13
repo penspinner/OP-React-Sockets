@@ -20361,24 +20361,69 @@ var ChatApp = function (_React$Component) {
 
         var _this = _possibleConstructorReturn(this, (ChatApp.__proto__ || Object.getPrototypeOf(ChatApp)).call(this, props));
 
-        _this.state = {};
+        _this.state = { socket: io(), messages: ['test messages'] };
+        console.log(_this.state.socket);
         return _this;
     }
 
+    /* Runs when component has been rendered to DOM. */
+
+
     _createClass(ChatApp, [{
         key: 'componentDidMount',
-        value: function componentDidMount() {}
+        value: function componentDidMount() {
+            console.log('did mount');
+            var socket = this.state.socket,
+                chatMessages = document.getElementById('chatMessages'),
+                message = document.getElementById('message');
+
+            /* On form submit, emit post message to server. */
+            socket.on('connect', function () {
+                var chatForm = document.forms.chatForm;
+
+                if (chatForm) {
+                    chatForm.addEventListener('submit', function (e) {
+                        e.preventDefault();
+                        socket.emit('postMessage', { message: message.value });
+                        message.value = '';
+                        message.focus();
+                    });
+
+                    socket.on('updateMessages', function (data) {
+                        console.log(data);
+                        // this.setState({messages: data});
+                    });
+                }
+            });
+        }
     }, {
         key: 'render',
         value: function render() {
+            var messages = this.state.messages.map(function (e) {
+                return true;
+            });
+
             return _react2.default.createElement(
                 'div',
-                { className: '' },
-                _react2.default.createElement('div', { id: 'messages' }),
+                { className: 'center-block' },
                 _react2.default.createElement(
                     'div',
-                    null,
-                    'Temp'
+                    { id: 'chatMessages' },
+                    messages
+                ),
+                _react2.default.createElement(
+                    'form',
+                    { name: 'chatForm' },
+                    _react2.default.createElement(
+                        'div',
+                        { className: 'form-group' },
+                        _react2.default.createElement('input', { type: 'text', name: 'message', id: 'message', className: 'form-control', required: true }),
+                        _react2.default.createElement(
+                            'button',
+                            { type: 'submit', className: 'btn btn-primary' },
+                            'Send'
+                        )
+                    )
                 )
             );
         }

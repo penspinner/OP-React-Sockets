@@ -35,9 +35,13 @@ var server = app.listen(app.get('port'), function () {
 
 socketIO.attach(server);
 socketIO.on('connection', function (socket) {
-    console.log('User connected');
+    console.log('User connected.');
+
+    socket.on('postMessage', function (data) {
+        socketIO.emit('updateMessages', data);
+    });
 
     socket.on('disconnect', function () {
-        console.log('User disconnected');
+        console.log('User disconnected.');
     });
 });

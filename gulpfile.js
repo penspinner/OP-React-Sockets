@@ -1,6 +1,7 @@
 var gulp = require('gulp'),
     gulp_babel = require('gulp-babel'),
-    gulp_browserify = require('gulp-browserify');
+    gulp_browserify = require('gulp-browserify'),
+    gulp_sass = require('gulp-sass');
 
 var outputDir = 'app/',
     process = 'process/',
@@ -8,7 +9,7 @@ var outputDir = 'app/',
     jsDir = process + 'js/',
     sassDir = process + 'sass/';
 
-
+/* Compiles the app.js (node starting point) in ES6. */
 gulp.task('app', function()
 {
     gulp.src(app)
@@ -16,6 +17,7 @@ gulp.task('app', function()
         .pipe(gulp.dest(outputDir));
 });
 
+/* Compiles all ES6 and React sources. */
 gulp.task('js', function()
 {
     gulp.src(jsDir + '*.js')
@@ -28,7 +30,7 @@ gulp.task('js', function()
 gulp.task('sass', function()
 {
     gulp.src(sassDir + 'style.scss')
-        .pipe(sass().on('error', sass.logError))
+        .pipe(gulp_sass({outputStyle: ''}).on('error', gulp_sass.logError))
         .pipe(gulp.dest(outputDir + 'public/css'));
 });
 

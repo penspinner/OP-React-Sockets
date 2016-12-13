@@ -24,10 +24,15 @@ let server = app.listen(app.get('port'), () =>
 socketIO.attach(server);
 socketIO.on('connection', (socket) =>
 {
-    console.log('User connected');
+    console.log('User connected.');
+
+    socket.on('postMessage', (data) =>
+    {
+        socketIO.emit('updateMessages', data);
+    });
 
     socket.on('disconnect', () => 
     {
-        console.log('User disconnected');
+        console.log('User disconnected.');
     })
 });
