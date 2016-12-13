@@ -16,9 +16,12 @@
     "babel-preset-react": "^6.16.0",
     "gulp": "^3.9.1",
     "gulp-babel": "^6.1.2",
-    "gulp-browserify": "^0.5.1"
+    "gulp-browserify": "^0.5.1",
+    "gulp-sass": "^3.0.0"
   },
   "dependencies": {
+    "bootstrap-sass": "^3.3.7",
+    "express": "^4.14.0",
     "react": "^15.4.1",
     "react-dom": "^15.4.1",
     "socket.io": "^1.7.2"
