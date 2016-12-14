@@ -20411,7 +20411,7 @@ var ChatApp = function (_React$Component) {
                     socket.emit('userTyping', { username: username, typing: false });
 
                     /* Let others know you went offline */
-                    socket.emit('sendMessage', { message: { content: username + ' left the chat room.' } });
+                    socket.emit('sendMessage', { content: username + ' left the chat room.' });
                 }
             };
         }
@@ -20440,7 +20440,7 @@ var ChatApp = function (_React$Component) {
                     if (_this3.state.users.indexOf(username) == -1) {
                         _this3.setState({ username: username });
                         socket.emit('userConnected', { username: username });
-                        socket.emit('sendMessage', { message: { content: username + ' joined the chat room.' } });
+                        socket.emit('sendMessage', { content: username + ' joined the chat room.' });
 
                         /* Remove this form and input. Do not allow user to change usernames. */
                         usernameForm.removeEventListener('submit', function () {});
@@ -20467,7 +20467,7 @@ var ChatApp = function (_React$Component) {
                 /**/
                 if (socket && username) {
                     /* Sends message to other users and then resets & refocuses on input. */
-                    socket.emit('sendMessage', { message: { sender: username, content: messageInput.value } });
+                    socket.emit('sendMessage', { sender: username, content: messageInput.value });
                     socket.emit('userTyping', { username: username, typing: false });
                     messageInput.value = '';
                     messageInput.focus();
@@ -20524,10 +20524,13 @@ var ChatApp = function (_React$Component) {
 
     }, {
         key: 'onUpdateMessages',
-        value: function onUpdateMessages(data) {
+        value: function onUpdateMessages(message) {
             var messages = this.state.messages;
-            messages.push(data.message);
-            this.setState({ messages: messages });
+            messages.push(message);
+            this.setState({ messages: messages }, function () {
+                var chatMessages = document.getElementById('chatMessages');
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            });
         }
 
         /* Someone connected to the chat, notify the chat room. */
@@ -20610,7 +20613,7 @@ var ChatApp = function (_React$Component) {
         value: function convertMessages(e, i) {
             return _react2.default.createElement(
                 'div',
-                { key: i, className: e.sender === this.state.username ? 'bg-info' : !e.sender ? 'bg-warning' : '' },
+                { key: i, className: e.sender === this.state.username ? 'bg-info' : !e.sender ? 'bg-warning' : 'bg-success' },
                 e.sender && _react2.default.createElement(
                     'div',
                     { className: 'username' },
@@ -20635,6 +20638,9 @@ var ChatApp = function (_React$Component) {
                 e += e === this.state.username ? " (you)" : ""
             );;
         }
+
+        /* Makes the string of users typing depending on who is/are typing. */
+
     }, {
         key: 'createUsersTypingString',
         value: function createUsersTypingString(usersTyping) {
@@ -20723,12 +20729,8 @@ var ChatApp = function (_React$Component) {
                             { className: 'col-sm-9 nopad' },
                             _react2.default.createElement(
                                 'div',
-                                { id: 'chatDisplay' },
-                                _react2.default.createElement(
-                                    'div',
-                                    { className: 'chat-messages' },
-                                    messages
-                                ),
+                                { id: 'chatMessages' },
+                                messages,
                                 _react2.default.createElement(
                                     'span',
                                     { className: 'typing' },

@@ -5824,25 +5824,21 @@ button.close {
   .chat-app #chatUsers .userList {
     list-style-type: none; }
 
-.chat-app #chatDisplay {
+.chat-app #chatMessages {
   position: relative;
   background-color: white;
   height: 460px;
   max-height: 460px;
   width: 100%;
+  overflow: auto;
   padding: 15px; }
-  .chat-app #chatDisplay .chat-messages {
-    max-height: inherit;
-    height: 100%;
-    width: 100%;
-    overflow: scroll; }
-    .chat-app #chatDisplay .chat-messages > div {
-      padding: 10px; }
-  .chat-app #chatDisplay .typing {
+  .chat-app #chatMessages > div {
+    padding: 10px; }
+  .chat-app #chatMessages .typing {
     font-size: 10px;
     position: absolute;
     bottom: 0; }
-  .chat-app #chatDisplay .username {
+  .chat-app #chatMessages .username {
     font-size: 12px; }
 
 .chat-app input[type=text], .chat-app button[type=submit] {

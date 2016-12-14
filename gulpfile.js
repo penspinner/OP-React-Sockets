@@ -41,9 +41,4 @@ gulp.task('watch', function()
     gulp.watch(sassDir + '*.scss', ['sass']);
 });
 
-gulp.task('connect', function()
-{
-
-});
-
-gulp.task('default', ['app', 'js', 'sass', 'connect', 'watch']);
+gulp.task('default', ['app', 'js', 'sass', 'watch']);

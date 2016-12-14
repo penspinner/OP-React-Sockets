@@ -16,7 +16,7 @@
         }
     }
 
-    #chatDisplay
+    #chatMessages
     {
 
         position: relative;
@@ -24,20 +24,15 @@
         height: 460px;
         max-height: 460px;
         width: 100%;
-        // overflow: scroll;
+        overflow: auto;
         padding: 15px;
 
-        .chat-messages
+
+        & > div
         {
-            max-height: inherit;
-            height: 100%;
-            width: 100%;
-            overflow: scroll;
-            & > div
-            {
-                padding: 10px;
-            }
+            padding: 10px;
         }
+
 
         .typing
         {
