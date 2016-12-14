@@ -2,9 +2,8 @@
   "name": "op-react-sockets",
   "version": "1.0.0",
   "description": "Simple chat application that allows 2 users to chat with each other through websockets.",
-  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app/app.js"
   },
   "keywords": [
     "React", "Socket IO"
