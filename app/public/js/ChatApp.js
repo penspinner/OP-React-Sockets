@@ -20546,7 +20546,7 @@ var ChatApp = function (_React$Component) {
             }
 
             /* Rerender the list of users in the chat. */
-            this.setState({ users: users, messages: messages });
+            this.setState({ users: users });
         }
 
         /* Someone else disconnected, update your view. */
@@ -20702,11 +20702,19 @@ var ChatApp = function (_React$Component) {
                             _react2.default.createElement(
                                 'form',
                                 { id: 'usernameForm', name: 'usernameForm' },
-                                _react2.default.createElement('input', { type: 'text', id: 'username', name: 'username', className: 'form-control', placeholder: 'Enter name', required: true, autoFocus: true }),
                                 _react2.default.createElement(
-                                    'button',
-                                    { type: 'submit', name: 'submit', className: 'btn btn-success' },
-                                    'Go'
+                                    'div',
+                                    { className: 'col-sm-9 nopad' },
+                                    _react2.default.createElement('input', { type: 'text', id: 'username', name: 'username', className: 'form-control', placeholder: 'Enter name', required: true, autoFocus: true })
+                                ),
+                                _react2.default.createElement(
+                                    'div',
+                                    { className: 'col-sm-3 nopad' },
+                                    _react2.default.createElement(
+                                        'button',
+                                        { type: 'submit', name: 'submit', className: 'form-control btn btn-success' },
+                                        'Go'
+                                    )
                                 )
                             )
                         ),
@@ -20715,8 +20723,12 @@ var ChatApp = function (_React$Component) {
                             { className: 'col-sm-9 nopad' },
                             _react2.default.createElement(
                                 'div',
-                                { id: 'chatMessages' },
-                                messages,
+                                { id: 'chatDisplay' },
+                                _react2.default.createElement(
+                                    'div',
+                                    { className: 'chat-messages' },
+                                    messages
+                                ),
                                 _react2.default.createElement(
                                     'span',
                                     { className: 'typing' },

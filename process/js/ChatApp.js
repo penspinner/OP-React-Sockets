@@ -183,7 +183,7 @@ class ChatApp extends React.Component
         }
 
         /* Rerender the list of users in the chat. */
-        this.setState({users: users, messages: messages});
+        this.setState({users: users});
     }
 
     /* Someone else disconnected, update your view. */
@@ -313,13 +313,19 @@ class ChatApp extends React.Component
                                 <ul className="userList">{users}</ul>
                             </div>
                             <form id="usernameForm" name="usernameForm">
+                                <div className="col-sm-9 nopad">
                                 <input type="text" id="username" name="username" className="form-control" placeholder="Enter name" required autoFocus></input>
-                                <button type="submit" name="submit" className="btn btn-success">Go</button>
+                                </div>
+                                <div className="col-sm-3 nopad">
+                                <button type="submit" name="submit" className="form-control btn btn-success">Go</button>
+                                </div>
                             </form>
                         </div>
                         <div className="col-sm-9 nopad">
-                            <div id="chatMessages">
-                                {messages}
+                            <div id="chatDisplay">
+                                <div className="chat-messages">
+                                    {messages}
+                                </div>
                                 <span className="typing">{usersTyping}</span>
                             </div>
                             <form name="chatForm">

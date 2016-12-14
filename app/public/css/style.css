@@ -5818,24 +5818,31 @@ button.close {
 .chat-app #chatUsers {
   background-color: #0D3340;
   color: #EAE3CB;
-  height: 450px; }
+  height: 500px; }
+  .chat-app #chatUsers h3 {
+    color: #EAE3CB; }
   .chat-app #chatUsers .userList {
     list-style-type: none; }
 
-.chat-app #chatMessages {
+.chat-app #chatDisplay {
   position: relative;
   background-color: white;
-  height: 410px;
+  height: 460px;
+  max-height: 460px;
   width: 100%;
-  overflow: scroll;
-  padding: 10px; }
-  .chat-app #chatMessages > div {
-    padding: 4px; }
-  .chat-app #chatMessages .typing {
+  padding: 15px; }
+  .chat-app #chatDisplay .chat-messages {
+    max-height: inherit;
+    height: 100%;
+    width: 100%;
+    overflow: scroll; }
+    .chat-app #chatDisplay .chat-messages > div {
+      padding: 10px; }
+  .chat-app #chatDisplay .typing {
     font-size: 10px;
     position: absolute;
     bottom: 0; }
-  .chat-app #chatMessages .username {
+  .chat-app #chatDisplay .username {
     font-size: 12px; }
 
 .chat-app input[type=text], .chat-app button[type=submit] {
@@ -5853,3 +5860,6 @@ button.close {
 body {
   background-color: #EAE3CB;
   color: #0A2933; }
+
+h1, h2, h3, h4, h5 {
+  color: #1F7F9E; }
