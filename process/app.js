@@ -26,23 +26,34 @@ socketIO.on('connection', (socket) =>
 {
     console.log('User connected.');
 
+    /* Message was sent from a client, update chat on everyone's screen.*/
     socket.on('sendMessage', (data) =>
     {
         console.log('send message');
         socketIO.emit('updateMessages', data);
     });
 
+    // socket.on('getAllUsers', (data) =>
+    // {
+    //     console.log('get all users');
+    //     socketIO.emit('getAllUsers', users);
+    // });
+
+    /* A user has connected, update everyone's screen. */
     socket.on('userConnected', (data) =>
     {
-        console.log('another user connected: ' + socket.id);
+        console.log(data.username + ' has connected.');
         socketIO.emit('userConnected', data);
     });
 
+    /* A user has disconnected, update everyone's screen. */
     socket.on('userDisconnected', (data) =>
     {
+        console.log('onUserDisconnected');
         socketIO.emit('userDisconnected', data);
     });
 
+    /* A user started typing, update everyone else's screen. */
     socket.on('userTyping', (data) =>
     {
         console.log('user typing');
