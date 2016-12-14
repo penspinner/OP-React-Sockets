@@ -8,41 +8,22 @@ class ChatApp extends React.Component
         super(props);
         this.state = 
         {
-            socket: io(), 
-            messages: [/*{username: 'TempUsername', message: 'test messages'}*/],
-            users: [/*'TempUsername'*/],
+            /* Initial client socket */
+            socket: io(),
+            /* Messages in the form of array of objects: {username: String, content: String} */ 
+            messages: [],
+            /* Array of all the users as strings */
+            users: [],
+            /* Array of all users currently typing */
             usersTyping: [],
+            /* Current user's username */
             username: ''
         };
-
-        this.onConnect();
-    }
-
-    /* On connect, emit connection to other users. */
-    onConnect()
-    {
-        let socket = this.state.socket;
-        socket.on('connect', () =>
-        {
-            // socket.emit('userConnected', {});
-        });
-    }
-
-    componentWillUnmount()
-    {
-        console.log('will unmount');
-        let socket = this.state.socket;
-        let username = this.state.username;
-
-        /* Tell everyone you left. */
-        // socket.emit('userDisconnected', {username: username});
     }
 
     /* Runs when component has been rendered to DOM. */
     componentDidMount()
     {
-        console.log('did mount');
-
         let socket = this.state.socket;
 
         /* Make sure there is a socket in the state. */
@@ -59,13 +40,15 @@ class ChatApp extends React.Component
             }
         }
 
+        /* Event listener for user refreshing or exiting the page. */
         window.onbeforeunload = () => 
         {
             let username = this.state.username;
 
-            if (username)
+            /* Make sure the user has joined the chat room before emitting to others*/
+            if (username && socket)
             {
-
+                /*  */
                 socket.emit('userDisconnected', {username: username});
 
                 /* Let others know that you are not typing anymore. */
@@ -85,23 +68,6 @@ class ChatApp extends React.Component
             messageInput = document.getElementById('message'),
             usernameInput = document.getElementById('username');
 
-        /* When user is typing, emit typing to server. */
-        messageInput.addEventListener('input', (e) =>
-        {
-            let typing = messageInput.value ? true : false;
-            let username = this.state.username;
-
-            if (username)
-            {
-                /* Tell other users that this user is typing or not typing. */
-                socket.emit('userTyping', {username: username, typing: typing});
-            } else
-            {
-                /* Username has not been set yet. */
-                
-            }
-        });
-
         /* On username form submit, emit user connected to others */
         /* Users are only allowed to set username once. */
         usernameForm.addEventListener('submit', (e) =>
@@ -109,8 +75,8 @@ class ChatApp extends React.Component
             e.preventDefault();
 
             let username = usernameForm.username.value;
-            console.log(username);
-            if (username)
+
+            if (socket && username)
             {
 
                 /* If username is not taken */
@@ -118,12 +84,13 @@ class ChatApp extends React.Component
                 {
                     this.setState({username: username});
                     socket.emit('userConnected', {username: username});
-                    socket.emit('getAllUsers', {});
+                    socket.emit('sendMessage', {message: {content: username + ' joined the chat room.'}});
 
                     /* Remove this form and input. Do not allow user to change usernames. */
                     usernameForm.removeEventListener('submit', () => {});
                     usernameForm.remove(usernameInput);
                     usernameForm.remove(usernameForm.submit);
+                    messageInput.focus();
                 } 
 
                 /* If username is taken */
@@ -144,9 +111,9 @@ class ChatApp extends React.Component
             let username = this.state.username;
 
             /**/
-            if (username)
+            if (socket && username)
             {
-                /* Sends message to server for it to emit and then refocuses on input. */
+                /* Sends message to other users and then resets & refocuses on input. */
                 socket.emit('sendMessage', {message: {sender: username, content: messageInput.value}});
                 socket.emit('userTyping', {username: username, typing: false});
                 messageInput.value = '';
@@ -156,13 +123,27 @@ class ChatApp extends React.Component
                 alert('Please set a username first.');
             }
         });
+
+        /* When user is typing, emit typing to server. */
+        messageInput.addEventListener('input', (e) =>
+        {
+            let typing = messageInput.value ? true : false;
+            let username = this.state.username;
+
+            if (socket && username)
+            {
+                /* Tell other users that this user is typing or not typing. */
+                socket.emit('userTyping', {username: username, typing: typing});
+            } else
+            {
+                /* Socket or username hasn't been set yet' */
+            }
+        });
     }
 
     /* Listen for emittions from server for incoming inquiries. */
     initSocketOn(socket)
     {
-        socket.on('getAllUsers', (data) => {this.onGetAllUsers(data);});
-
         /* Update messages in chat box. */
         socket.on('updateMessages', (data) => {this.onUpdateMessages(data);});
 
@@ -178,33 +159,27 @@ class ChatApp extends React.Component
 
     /* ----------------------On socket methods-------------------- */
 
-    onGetAllUsers(users)
-    {
-        this.setState({users: users});
-    }
-
+    /* Someone sent a message, update the chat display. */
     onUpdateMessages(data)
     {
         let messages = this.state.messages;
         messages.push(data.message);
-        console.log(data.message);
-        
         this.setState({messages: messages});
     }
 
+    /* Someone connected to the chat, notify the chat room. */
     onUserConnected(data)
     {
-        // console.log(data.username + ' connected');
-
         /* Add to sidebar list. */
         let users = this.state.users;
-        let messages = this.state.messages;
 
         /* Make sure username has been passed through*/
         if (data.username)
         {
             users.unshift(data.username);
-            messages.push({content: data.username + ' joined the chat room.'});
+        } else
+        {
+            alert('Error: no username has been passed through.');
         }
 
         /* Rerender the list of users in the chat. */
@@ -214,10 +189,7 @@ class ChatApp extends React.Component
     /* Someone else disconnected, update your view. */
     onUserDisconnected(data)
     {
-        console.log(data);
-
         let users = this.state.users;
-        let username = data.username;
         let index = users.indexOf(data.username);
         
         /* Remove disconnected user from the list of users. */
@@ -225,17 +197,16 @@ class ChatApp extends React.Component
         {
             users.splice(index, 1);
             this.setState({users: users});
-
         } else
         {
             /* Error: user not in list */
+            alert('Error: user is not in the list');
         }
     }
 
-    /* Adds the user typing to the list and shows it on screen. */
+    /* Someone else in the chat is typing, update your view. */
     onUserTyping(data)
     {
-        // console.log(data.typing + ' user typing');
         let usersTyping = this.state.usersTyping;
         let index = usersTyping.indexOf(data.username);
 
@@ -255,7 +226,9 @@ class ChatApp extends React.Component
             
             /* User is currently typing. */
             else if (index !== -1 && data.typing)
-                console.log(data.username + ' is typing');
+            {
+                // console.log(data.username + ' is typing');
+            }
 
             /* Error: user is not typing. */
             else
@@ -270,8 +243,8 @@ class ChatApp extends React.Component
 
     /* Converts the message to JSX HTML component. */
     convertMessages(e, i)
-    {
-        let message = (
+    { 
+        return (
             <div key={i} className={e.sender === this.state.username ? 'bg-info' : !e.sender ? 'bg-warning' : ''}>
                 {
                     e.sender &&
@@ -281,21 +254,43 @@ class ChatApp extends React.Component
                 }
                 {e.content}
             </div>
-        );
-
-        return message;
+        );;
     }
 
     /* Converts the user to JSX HTML component. */
     convertUsers(e, i)
     {
-        let user = (
+        return (
             <li key={i} className="">
                 {e += e === this.state.username ? " (you)" : ""}
             </li>
-        );
+        );;
+    }
 
-        return user;
+    createUsersTypingString(usersTyping)
+    {
+        if (usersTyping.length > 0)
+        {
+            if (usersTyping.length > 3)
+            {
+                return usersTyping.length + ' users typing...';
+            } else
+            {
+                let string = usersTyping.join(',');
+
+                if (usersTyping.length == 1)
+                {
+                    string += ' is typing...';
+                } else
+                {
+                    string += ' are typing...';
+                }
+
+                return string;
+            }
+        }
+
+        return '';
     }
 
     render()
@@ -330,10 +325,10 @@ class ChatApp extends React.Component
                             <form name="chatForm">
                                 <div className="form-group row nopad">
                                     <div className="col-sm-10 nopad">
-                                    <textarea id="message" className="form-control" required></textarea>
+                                        <input type="text" id="message" className="form-control" placeholder="Message"></input>
                                     </div>
                                     <div className="col-sm-2 nopad">
-                                    <button type="submit" className="form-control btn btn-primary">Send</button>
+                                        <button type="submit" className="form-control btn btn-primary">Send</button>
                                     </div>
                                 </div>
                             </form>

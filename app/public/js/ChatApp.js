@@ -20362,47 +20362,27 @@ var ChatApp = function (_React$Component) {
         var _this = _possibleConstructorReturn(this, (ChatApp.__proto__ || Object.getPrototypeOf(ChatApp)).call(this, props));
 
         _this.state = {
+            /* Initial client socket */
             socket: io(),
-            messages: [/*{username: 'TempUsername', message: 'test messages'}*/],
-            users: [/*'TempUsername'*/],
+            /* Messages in the form of array of objects: {username: String, content: String} */
+            messages: [],
+            /* Array of all the users as strings */
+            users: [],
+            /* Array of all users currently typing */
             usersTyping: [],
+            /* Current user's username */
             username: ''
         };
-
-        _this.onConnect();
         return _this;
     }
 
-    /* On connect, emit connection to other users. */
+    /* Runs when component has been rendered to DOM. */
 
 
     _createClass(ChatApp, [{
-        key: 'onConnect',
-        value: function onConnect() {
-            var socket = this.state.socket;
-            socket.on('connect', function () {
-                // socket.emit('userConnected', {});
-            });
-        }
-    }, {
-        key: 'componentWillUnmount',
-        value: function componentWillUnmount() {
-            console.log('will unmount');
-            var socket = this.state.socket;
-            var username = this.state.username;
-
-            /* Tell everyone you left. */
-            // socket.emit('userDisconnected', {username: username});
-        }
-
-        /* Runs when component has been rendered to DOM. */
-
-    }, {
         key: 'componentDidMount',
         value: function componentDidMount() {
             var _this2 = this;
-
-            console.log('did mount');
 
             var socket = this.state.socket;
 
@@ -20418,11 +20398,13 @@ var ChatApp = function (_React$Component) {
                 }
             }
 
+            /* Event listener for user refreshing or exiting the page. */
             window.onbeforeunload = function () {
                 var username = _this2.state.username;
 
-                if (username) {
-
+                /* Make sure the user has joined the chat room before emitting to others*/
+                if (username && socket) {
+                    /*  */
                     socket.emit('userDisconnected', { username: username });
 
                     /* Let others know that you are not typing anymore. */
@@ -20445,39 +20427,26 @@ var ChatApp = function (_React$Component) {
                 messageInput = document.getElementById('message'),
                 usernameInput = document.getElementById('username');
 
-            /* When user is typing, emit typing to server. */
-            messageInput.addEventListener('input', function (e) {
-                var typing = messageInput.value ? true : false;
-                var username = _this3.state.username;
-
-                if (username) {
-                    /* Tell other users that this user is typing or not typing. */
-                    socket.emit('userTyping', { username: username, typing: typing });
-                } else {
-                    /* Username has not been set yet. */
-
-                }
-            });
-
             /* On username form submit, emit user connected to others */
             /* Users are only allowed to set username once. */
             usernameForm.addEventListener('submit', function (e) {
                 e.preventDefault();
 
                 var username = usernameForm.username.value;
-                console.log(username);
-                if (username) {
+
+                if (socket && username) {
 
                     /* If username is not taken */
                     if (_this3.state.users.indexOf(username) == -1) {
                         _this3.setState({ username: username });
                         socket.emit('userConnected', { username: username });
-                        socket.emit('getAllUsers', {});
+                        socket.emit('sendMessage', { message: { content: username + ' joined the chat room.' } });
 
                         /* Remove this form and input. Do not allow user to change usernames. */
                         usernameForm.removeEventListener('submit', function () {});
                         usernameForm.remove(usernameInput);
                         usernameForm.remove(usernameForm.submit);
+                        messageInput.focus();
                     }
 
                     /* If username is taken */
@@ -20496,14 +20465,27 @@ var ChatApp = function (_React$Component) {
                 var username = _this3.state.username;
 
                 /**/
-                if (username) {
-                    /* Sends message to server for it to emit and then refocuses on input. */
+                if (socket && username) {
+                    /* Sends message to other users and then resets & refocuses on input. */
                     socket.emit('sendMessage', { message: { sender: username, content: messageInput.value } });
                     socket.emit('userTyping', { username: username, typing: false });
                     messageInput.value = '';
                     messageInput.focus();
                 } else {
                     alert('Please set a username first.');
+                }
+            });
+
+            /* When user is typing, emit typing to server. */
+            messageInput.addEventListener('input', function (e) {
+                var typing = messageInput.value ? true : false;
+                var username = _this3.state.username;
+
+                if (socket && username) {
+                    /* Tell other users that this user is typing or not typing. */
+                    socket.emit('userTyping', { username: username, typing: typing });
+                } else {
+                    /* Socket or username hasn't been set yet' */
                 }
             });
         }
@@ -20514,10 +20496,6 @@ var ChatApp = function (_React$Component) {
         key: 'initSocketOn',
         value: function initSocketOn(socket) {
             var _this4 = this;
-
-            socket.on('getAllUsers', function (data) {
-                _this4.onGetAllUsers(data);
-            });
 
             /* Update messages in chat box. */
             socket.on('updateMessages', function (data) {
@@ -20542,33 +20520,29 @@ var ChatApp = function (_React$Component) {
 
         /* ----------------------On socket methods-------------------- */
 
-    }, {
-        key: 'onGetAllUsers',
-        value: function onGetAllUsers(users) {
-            this.setState({ users: users });
-        }
+        /* Someone sent a message, update the chat display. */
+
     }, {
         key: 'onUpdateMessages',
         value: function onUpdateMessages(data) {
             var messages = this.state.messages;
             messages.push(data.message);
-            console.log(data.message);
-
             this.setState({ messages: messages });
         }
+
+        /* Someone connected to the chat, notify the chat room. */
+
     }, {
         key: 'onUserConnected',
         value: function onUserConnected(data) {
-            // console.log(data.username + ' connected');
-
             /* Add to sidebar list. */
             var users = this.state.users;
-            var messages = this.state.messages;
 
             /* Make sure username has been passed through*/
             if (data.username) {
                 users.unshift(data.username);
-                messages.push({ content: data.username + ' joined the chat room.' });
+            } else {
+                alert('Error: no username has been passed through.');
             }
 
             /* Rerender the list of users in the chat. */
@@ -20580,10 +20554,7 @@ var ChatApp = function (_React$Component) {
     }, {
         key: 'onUserDisconnected',
         value: function onUserDisconnected(data) {
-            console.log(data);
-
             var users = this.state.users;
-            var username = data.username;
             var index = users.indexOf(data.username);
 
             /* Remove disconnected user from the list of users. */
@@ -20592,15 +20563,15 @@ var ChatApp = function (_React$Component) {
                 this.setState({ users: users });
             } else {
                 /* Error: user not in list */
+                alert('Error: user is not in the list');
             }
         }
 
-        /* Adds the user typing to the list and shows it on screen. */
+        /* Someone else in the chat is typing, update your view. */
 
     }, {
         key: 'onUserTyping',
         value: function onUserTyping(data) {
-            // console.log(data.typing + ' user typing');
             var usersTyping = this.state.usersTyping;
             var index = usersTyping.indexOf(data.username);
 
@@ -20618,7 +20589,9 @@ var ChatApp = function (_React$Component) {
                         usersTyping.splice(index, 1);
 
                         /* User is currently typing. */
-                    else if (index !== -1 && data.typing) console.log(data.username + ' is typing');
+                    else if (index !== -1 && data.typing) {}
+                        // console.log(data.username + ' is typing');
+
 
                         /* Error: user is not typing. */
                         else console.log(data.username + ' is already not typing.');
@@ -20635,7 +20608,7 @@ var ChatApp = function (_React$Component) {
     }, {
         key: 'convertMessages',
         value: function convertMessages(e, i) {
-            var message = _react2.default.createElement(
+            return _react2.default.createElement(
                 'div',
                 { key: i, className: e.sender === this.state.username ? 'bg-info' : !e.sender ? 'bg-warning' : '' },
                 e.sender && _react2.default.createElement(
@@ -20648,9 +20621,7 @@ var ChatApp = function (_React$Component) {
                     )
                 ),
                 e.content
-            );
-
-            return message;
+            );;
         }
 
         /* Converts the user to JSX HTML component. */
@@ -20658,13 +20629,32 @@ var ChatApp = function (_React$Component) {
     }, {
         key: 'convertUsers',
         value: function convertUsers(e, i) {
-            var user = _react2.default.createElement(
+            return _react2.default.createElement(
                 'li',
                 { key: i, className: '' },
                 e += e === this.state.username ? " (you)" : ""
-            );
+            );;
+        }
+    }, {
+        key: 'createUsersTypingString',
+        value: function createUsersTypingString(usersTyping) {
+            if (usersTyping.length > 0) {
+                if (usersTyping.length > 3) {
+                    return usersTyping.length + ' users typing...';
+                } else {
+                    var string = usersTyping.join(',');
 
-            return user;
+                    if (usersTyping.length == 1) {
+                        string += ' is typing...';
+                    } else {
+                        string += ' are typing...';
+                    }
+
+                    return string;
+                }
+            }
+
+            return '';
         }
     }, {
         key: 'render',
@@ -20742,7 +20732,7 @@ var ChatApp = function (_React$Component) {
                                     _react2.default.createElement(
                                         'div',
                                         { className: 'col-sm-10 nopad' },
-                                        _react2.default.createElement('textarea', { id: 'message', className: 'form-control', required: true })
+                                        _react2.default.createElement('input', { type: 'text', id: 'message', className: 'form-control', placeholder: 'Message' })
                                     ),
                                     _react2.default.createElement(
                                         'div',
