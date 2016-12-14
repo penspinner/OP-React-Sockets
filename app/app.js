@@ -44,7 +44,11 @@ socketIO.on('connection', function (socket) {
 
     socket.on('userConnected', function (data) {
         console.log('another user connected: ' + socket.id);
-        socket.broadcast.emit('userConnected', data);
+        socketIO.emit('userConnected', data);
+    });
+
+    socket.on('userDisconnected', function (data) {
+        socketIO.emit('userDisconnected', data);
     });
 
     socket.on('userTyping', function (data) {

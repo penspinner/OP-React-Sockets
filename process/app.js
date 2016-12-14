@@ -35,7 +35,12 @@ socketIO.on('connection', (socket) =>
     socket.on('userConnected', (data) =>
     {
         console.log('another user connected: ' + socket.id);
-        socket.broadcast.emit('userConnected', data);
+        socketIO.emit('userConnected', data);
+    });
+
+    socket.on('userDisconnected', (data) =>
+    {
+        socketIO.emit('userDisconnected', data);
     });
 
     socket.on('userTyping', (data) =>
@@ -43,6 +48,7 @@ socketIO.on('connection', (socket) =>
         console.log('user typing');
         socket.broadcast.emit('userTyping', data);
     });
+
 
     socket.on('disconnect', () => 
     {

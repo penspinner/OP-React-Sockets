@@ -20361,8 +20361,13 @@ var ChatApp = function (_React$Component) {
 
         var _this = _possibleConstructorReturn(this, (ChatApp.__proto__ || Object.getPrototypeOf(ChatApp)).call(this, props));
 
-        _this.state = { socket: io(), messages: ['test messages'], usersTyping: [] };
-        console.log(_this.state.socket);
+        _this.state = {
+            socket: io(),
+            messages: [/*{username: 'TempUsername', message: 'test messages'}*/],
+            users: [/*'TempUsername'*/],
+            usersTyping: [],
+            username: ''
+        };
 
         _this.onConnect();
         _this.onDisconnect();
@@ -20377,7 +20382,6 @@ var ChatApp = function (_React$Component) {
         value: function onConnect() {
             var socket = this.state.socket;
             socket.on('connect', function () {
-                // console.log(socket.id);
                 socket.emit('userConnected', { userID: socket.id });
             });
         }
@@ -20388,12 +20392,19 @@ var ChatApp = function (_React$Component) {
         key: 'onDisconnect',
         value: function onDisconnect() {
             var socket = this.state.socket;
-            socket.on('disconnect', function () {
-                /* Let others know that you are not typing anymore. */
-                socket.emit('userTyping', { typing: false });
+            var users = this.state.users;
+            var username = this.state.username;
+            socket.on('disconnect', function () {});
+        }
+    }, {
+        key: 'componentWillUnmount',
+        value: function componentWillUnmount() {
+            console.log('will unmount');
+            var socket = this.state.socket;
+            var username = this.state.username;
 
-                /* Let others know you went offline */
-            });
+            /* Tell everyone you left. */
+            // socket.emit('onUserDisconnected', {username: username});
         }
 
         /* Runs when component has been rendered to DOM. */
@@ -20401,73 +20412,120 @@ var ChatApp = function (_React$Component) {
     }, {
         key: 'componentDidMount',
         value: function componentDidMount() {
+            var _this2 = this;
+
             console.log('did mount');
 
             var socket = this.state.socket,
                 chatMessages = document.getElementById('chatMessages'),
-                message = document.getElementById('message');
+                messageInput = document.getElementById('message'),
+                usernameInput = document.getElementById('username');
 
             /* Make sure there is a socket in the state. */
             if (socket) {
-                /* Get the chat form */
-                var chatForm = document.forms.chatForm;
+                /* Get the chat and username forms. */
+                var chatForm = document.forms.chatForm,
+                    usernameForm = document.forms.usernameForm;
 
-                if (chatForm) {
-                    this.initEventListeners(socket, chatMessages, message);
+                if (chatForm && usernameForm) {
+                    this.initEventListeners(socket, chatForm, usernameForm, chatMessages, messageInput);
                     this.initSocketOn(socket, chatMessages, message);
                 }
             }
+
+            window.onbeforeunload = function () {
+                var username = _this2.state.username;
+                socket.emit('onUserDisconnected', { username: username });
+            };
         }
 
         /* Add event listeners for typing and sending messages */
 
     }, {
         key: 'initEventListeners',
-        value: function initEventListeners(socket, chatMessages, message) {
-            /* When user is typing, emit typing to server. */
-            message.addEventListener('input', function (e) {
-                var typing = message.value ? true : false;
+        value: function initEventListeners(socket, chatForm, usernameForm, chatMessages, messageInput) {
+            var _this3 = this;
 
-                /* Tell other users that this user is typing or not typing. */
-                socket.emit('userTyping', { username: 'TempUsername', typing: typing });
+            /* When user is typing, emit typing to server. */
+            messageInput.addEventListener('input', function (e) {
+                var typing = messageInput.value ? true : false;
+                var username = _this3.state.username;
+                console.log(username);
+                if (username) {
+                    /* Tell other users that this user is typing or not typing. */
+                    socket.emit('userTyping', { username: username, typing: typing });
+                } else {
+                    /* Username has not been set yet. */
+                }
             });
 
-            /* On form submit, emit post message to server. */
-            chatForm.addEventListener('submit', function (e) {
+            /* On username form submit, emit user connected to others */
+            usernameForm.addEventListener('submit', function (e) {
                 e.preventDefault();
 
-                /* Sends message to server for it to emit and then refocuses on input. */
-                socket.emit('sendMessage', { message: message.value });
-                message.value = '';
-                message.focus();
+                var username = usernameForm.username.value;
+                console.log(username);
+                if (username) {
+
+                    /* If username is not taken */
+                    if (_this3.state.users.indexOf(username) == -1) {
+                        _this3.setState({ username: username });
+                        socket.emit('userConnected', { username: username });
+
+                        /* Remove this form and input. Do not allow user to change usernames. */
+                    }
+
+                    /* If username is taken */
+                    else {
+                            alert('username is taken');
+                        }
+                }
+            });
+
+            /* On chat form submit, emit post message to others. */
+            chatForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                var messageInput = chatForm.message;
+                var username = _this3.state.username;
+
+                /**/
+                if (username) {
+                    /* Sends message to server for it to emit and then refocuses on input. */
+                    socket.emit('sendMessage', { message: { username: username, message: messageInput.value } });
+                    messageInput.value = '';
+                    messageInput.focus();
+                    socket.emit('userTyping', { username: username, typing: false });
+                } else {
+                    alert('Please set a username first.');
+                }
             });
         }
 
-        /* Listen for emittions from server for incoming messages. */
+        /* Listen for emittions from server for incoming inquiries. */
 
     }, {
         key: 'initSocketOn',
         value: function initSocketOn(socket, chatMessages, message) {
-            var _this2 = this;
+            var _this4 = this;
 
             /* Update messages in chat box. */
             socket.on('updateMessages', function (data) {
-                _this2.onUpdateMessages(data);
+                _this4.onUpdateMessages(data);
             });
 
             /* When another user is online, tell user */
             socket.on('userConnected', function (data) {
-                _this2.onUserConnected(data);
+                _this4.onUserConnected(data);
             });
 
             /* When another user went offline, tell user */
             socket.on('userDisconnected', function (data) {
-                _this2.onUserDisconnected(data);
+                _this4.onUserDisconnected(data);
             });
 
             /* When another user is typing, tell user */
             socket.on('userTyping', function (data) {
-                _this2.onUserTyping(data);
+                _this4.onUserTyping(data);
             });
         }
 
@@ -20478,20 +20536,45 @@ var ChatApp = function (_React$Component) {
         value: function onUpdateMessages(data) {
             var messages = this.state.messages;
             messages.push(data.message);
-            console.log(data);
-            console.log(messages);
 
             this.setState({ messages: messages });
         }
     }, {
         key: 'onUserConnected',
         value: function onUserConnected(data) {
-            console.log(data.userID + ' connected');
+            console.log(data.username + ' connected');
+
+            /* Add to sidebar list. */
+            var users = this.state.users;
+            var messages = this.state.messages;
+
+            /* Make sure username has been passed through*/
+            if (data.username) {
+                users.unshift(data.username);
+                messages.push({ message: data.username + ' joined the chat room.' });
+            }
+
+            /* Rerender the list of users in the chat. */
+            this.setState({ users: users });
         }
     }, {
         key: 'onUserDisconnected',
         value: function onUserDisconnected(data) {
             console.log(data);
+
+            var socket = this.state.socket;
+            var users = this.state.users;
+            var username = data.username;
+
+            /* Let others know that you are not typing anymore. */
+            socket.emit('userTyping', { username: username, typing: false });
+
+            /* Let others know you went offline */
+            socket.emit('sendMessage', { message: username + ' left the chat room.' });
+
+            /* Remove user from the list of users. */
+            users.splice(username);
+            this.setState({ users: users });
         }
     }, {
         key: 'onUserTyping',
@@ -20499,18 +20582,25 @@ var ChatApp = function (_React$Component) {
             console.log(data.typing + ' user typing');
             var usersTyping = this.state.usersTyping;
             var index = usersTyping.indexOf(data.username);
-            console.log('index: ' + index);
 
             /* Make sure a username has been passed through. */
             if (data.username) {
 
                 /* Make sure the user is not already typing. */
                 if (index === -1 && data.typing)
-                    /* Add user to the list. */
+                    /* Add user to the list of users typing. */
                     usersTyping.push(data.username);
 
-                    /* Otherwise, remove the name from the list. */
-                else if (index !== -1 && !data.typing) usersTyping.splice(index, 1);else console.log(data.username + ' is already not typing.');
+                    /* Make sure user is not typing and is in the list of users typing. */
+                else if (index !== -1 && !data.typing)
+                        /* Remove the name from the list of users typing. */
+                        usersTyping.splice(index, 1);
+
+                        /* User is currently typing. */
+                    else if (index !== -1 && data.typing) console.log(data.username + ' is typing');
+
+                        /* Error: user is not typing. */
+                        else console.log(data.username + ' is already not typing.');
             }
 
             /* Rerender the users typing. */
@@ -20519,47 +20609,131 @@ var ChatApp = function (_React$Component) {
 
         /* ------------------End on socket methods-------------------- */
 
+        /* Converts the message to JSX HTML component. */
+
     }, {
         key: 'convertMessages',
         value: function convertMessages(e, i) {
-            return _react2.default.createElement(
+            var message = _react2.default.createElement(
                 'div',
-                { key: i },
+                { key: i, className: e.username === this.state.username ? 'bg-info' : '' },
+                e.username && _react2.default.createElement(
+                    'div',
+                    { className: 'username' },
+                    _react2.default.createElement(
+                        'b',
+                        null,
+                        e.username
+                    )
+                ),
+                e.message
+            );
+
+            return message;
+        }
+
+        /* Converts the user to JSX HTML component. */
+
+    }, {
+        key: 'convertUsers',
+        value: function convertUsers(e, i) {
+            var user = _react2.default.createElement(
+                'li',
+                { key: i, className: '' },
                 e
             );
+
+            return user;
         }
     }, {
         key: 'render',
         value: function render() {
-            var messages = this.state.messages.map(this.convertMessages);
+            var messages = this.state.messages.map(this.convertMessages, this);
+            var users = this.state.users.map(this.convertUsers);
             var usersTyping = this.state.usersTyping.join(',');
-            console.log(this.state.usersTyping);
             usersTyping += usersTyping ? ' is typing...' : '';
 
             return _react2.default.createElement(
                 'div',
-                { className: 'center-block' },
+                { className: '' },
                 _react2.default.createElement(
                     'div',
-                    { id: 'chatMessages' },
-                    messages,
+                    { className: 'text-center' },
                     _react2.default.createElement(
-                        'span',
-                        { className: 'typing' },
-                        usersTyping
+                        'h1',
+                        null,
+                        'OP CHAT'
                     )
                 ),
                 _react2.default.createElement(
-                    'form',
-                    { name: 'chatForm' },
+                    'div',
+                    { className: 'chat-app container center-block' },
                     _react2.default.createElement(
                         'div',
-                        { className: 'form-group' },
-                        _react2.default.createElement('input', { type: 'text', id: 'message', className: 'form-control', required: true }),
+                        { className: 'row' },
                         _react2.default.createElement(
-                            'button',
-                            { type: 'submit', className: 'btn btn-primary' },
-                            'Send'
+                            'div',
+                            { className: 'col-sm-3 nopad' },
+                            _react2.default.createElement(
+                                'div',
+                                { id: 'chatUsers', className: 'container-fluid' },
+                                _react2.default.createElement(
+                                    'h3',
+                                    null,
+                                    'Users in chat room'
+                                ),
+                                _react2.default.createElement(
+                                    'ul',
+                                    { className: 'userList' },
+                                    users
+                                )
+                            ),
+                            _react2.default.createElement(
+                                'form',
+                                { name: 'usernameForm' },
+                                _react2.default.createElement('input', { type: 'text', id: 'username', name: 'username', className: 'form-control', placeholder: 'Enter name', required: true }),
+                                _react2.default.createElement(
+                                    'button',
+                                    { type: 'submit', className: 'btn btn-success' },
+                                    'Go'
+                                )
+                            )
+                        ),
+                        _react2.default.createElement(
+                            'div',
+                            { className: 'col-sm-9 nopad' },
+                            _react2.default.createElement(
+                                'div',
+                                { id: 'chatMessages' },
+                                messages,
+                                _react2.default.createElement(
+                                    'span',
+                                    { className: 'typing' },
+                                    usersTyping
+                                )
+                            ),
+                            _react2.default.createElement(
+                                'form',
+                                { name: 'chatForm' },
+                                _react2.default.createElement(
+                                    'div',
+                                    { className: 'form-group row nopad' },
+                                    _react2.default.createElement(
+                                        'div',
+                                        { className: 'col-sm-10 nopad' },
+                                        _react2.default.createElement('input', { type: 'text', id: 'message', className: 'form-control', required: true })
+                                    ),
+                                    _react2.default.createElement(
+                                        'div',
+                                        { className: 'col-sm-2 nopad' },
+                                        _react2.default.createElement(
+                                            'button',
+                                            { type: 'submit', className: 'form-control btn btn-primary' },
+                                            'Send'
+                                        )
+                                    )
+                                )
+                            )
                         )
                     )
                 )
