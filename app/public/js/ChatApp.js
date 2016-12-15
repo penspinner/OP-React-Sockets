@@ -20388,133 +20388,52 @@ var ChatApp = function (_React$Component) {
 
             /* Make sure there is a socket in the state. */
             if (socket) {
-                /* Get the chat and username forms. */
-                var chatForm = document.forms.chatForm,
-                    usernameForm = document.forms.usernameForm;
+                this.initSocketOnEvents(socket);
 
-                if (chatForm && usernameForm) {
-                    this.initEventListeners(socket, chatForm, usernameForm);
-                    this.initSocketOn(socket);
-                }
-            }
+                /* Event listener for user refreshing or exiting the page. */
+                window.onbeforeunload = function () {
+                    var username = _this2.state.username;
 
-            /* Event listener for user refreshing or exiting the page. */
-            window.onbeforeunload = function () {
-                var username = _this2.state.username;
+                    /* Make sure the user has joined the chat room before emitting to others*/
+                    if (username && socket) {
+                        /*  */
+                        socket.emit('userDisconnected', { username: username });
 
-                /* Make sure the user has joined the chat room before emitting to others*/
-                if (username && socket) {
-                    /*  */
-                    socket.emit('userDisconnected', { username: username });
+                        /* Let others know that you are not typing anymore. */
+                        socket.emit('userTyping', { username: username, typing: false });
 
-                    /* Let others know that you are not typing anymore. */
-                    socket.emit('userTyping', { username: username, typing: false });
-
-                    /* Let others know you went offline */
-                    socket.emit('sendMessage', { content: username + ' left the chat room.' });
-                }
-            };
-        }
-
-        /* Add event listeners for typing and sending messages */
-
-    }, {
-        key: 'initEventListeners',
-        value: function initEventListeners(socket, chatForm, usernameForm) {
-            var _this3 = this;
-
-            var chatMessages = document.getElementById('chatMessages'),
-                messageInput = document.getElementById('message'),
-                usernameInput = document.getElementById('username');
-
-            /* On username form submit, emit user connected to others */
-            /* Users are only allowed to set username once. */
-            usernameForm.addEventListener('submit', function (e) {
-                e.preventDefault();
-
-                var username = usernameForm.username.value;
-
-                if (socket && username) {
-
-                    /* If username is not taken */
-                    if (_this3.state.users.indexOf(username) == -1) {
-                        _this3.setState({ username: username });
-                        socket.emit('userConnected', { username: username });
-                        socket.emit('sendMessage', { content: username + ' joined the chat room.' });
-
-                        /* Remove this form and input. Do not allow user to change usernames. */
-                        usernameForm.removeEventListener('submit', function () {});
-                        usernameForm.remove(usernameInput);
-                        usernameForm.remove(usernameForm.submit);
-                        messageInput.focus();
+                        /* Let others know you went offline */
+                        socket.emit('sendMessage', { content: username + ' left the chat room.' });
                     }
-
-                    /* If username is taken */
-                    else {
-                            alert('Username is in use. Please choose another username.');
-                            usernameInput.value = '';
-                            usernameInput.focus();
-                        }
-                }
-            });
-
-            /* On chat form submit, emit post message to others. */
-            chatForm.addEventListener('submit', function (e) {
-                e.preventDefault();
-                var messageInput = chatForm.message;
-                var username = _this3.state.username;
-
-                /**/
-                if (socket && username) {
-                    /* Sends message to other users and then resets & refocuses on input. */
-                    socket.emit('sendMessage', { sender: username, content: messageInput.value });
-                    socket.emit('userTyping', { username: username, typing: false });
-                    messageInput.value = '';
-                    messageInput.focus();
-                } else {
-                    alert('Please set a username first.');
-                }
-            });
-
-            /* When user is typing, emit typing to server. */
-            messageInput.addEventListener('input', function (e) {
-                var typing = messageInput.value ? true : false;
-                var username = _this3.state.username;
-
-                if (socket && username) {
-                    /* Tell other users that this user is typing or not typing. */
-                    socket.emit('userTyping', { username: username, typing: typing });
-                } else {
-                    /* Socket or username hasn't been set yet' */
-                }
-            });
+                };
+            }
         }
 
         /* Listen for emittions from server for incoming inquiries. */
 
     }, {
-        key: 'initSocketOn',
-        value: function initSocketOn(socket) {
-            var _this4 = this;
+        key: 'initSocketOnEvents',
+        value: function initSocketOnEvents(socket) {
+            var _this3 = this;
 
             /* Update messages in chat box. */
             socket.on('updateMessages', function (data) {
-                _this4.onUpdateMessages(data);
+                _this3.onUpdateMessages(data);
             });
 
             /* When another user is online, tell user */
             socket.on('userConnected', function (data) {
-                _this4.onUserConnected(data);
+                _this3.onUserConnected(data);
             });
 
             /* When another user went offline, tell user */
             socket.on('userDisconnected', function (data) {
-                _this4.onUserDisconnected(data);
+                _this3.onUserDisconnected(data);
             });
 
             /* When another user is typing, tell user */
             socket.on('userTyping', function (data) {
-                _this4.onUserTyping(data);
+                _this3.onUserTyping(data);
             });
         }
 
@@ -20606,6 +20525,83 @@ var ChatApp = function (_React$Component) {
 
         /* ------------------End on socket methods-------------------- */
 
+        /* ------------------Chat events-------------------- */
+
+        /* On chat form submit, emit post message to others. */
+
+    }, {
+        key: 'handleChatFormSubmit',
+        value: function handleChatFormSubmit(e) {
+            e.preventDefault();
+            var username = this.state.username;
+            var socket = this.state.socket;
+            var inputMessage = this.inputMessage;
+
+            if (socket && username) {
+                if (inputMessage.value) {
+                    /* Sends message to other users and then resets & refocuses on input. */
+                    socket.emit('sendMessage', { sender: username, content: inputMessage.value });
+                    socket.emit('userTyping', { username: username, typing: false });
+                    inputMessage.value = '';
+                    inputMessage.focus();
+                }
+            } else {
+                alert('Please set a username first.');
+            }
+        }
+
+        /* On username form submit, emit user connected to others */
+        /* Users are only allowed to set username once. */
+
+    }, {
+        key: 'handleUsernameFormSubmit',
+        value: function handleUsernameFormSubmit(e) {
+            e.preventDefault();
+            var username = inputUsername.value;
+            var socket = this.state.socket;
+            var inputUsername = this.inputUsername;
+
+            if (socket && username) {
+                /* If username is not taken */
+                if (this.state.users.indexOf(username) == -1) {
+                    this.setState({ username: username });
+                    socket.emit('userConnected', { username: username });
+                    socket.emit('sendMessage', { content: username + ' joined the chat room.' });
+
+                    /* Remove this form and input. Do not allow user to change usernames. */
+                    e.target.remove(inputUsername);
+                    e.target.remove(e.target.submit);
+                    this.inputMessage.focus();
+                }
+
+                /* If username is taken */
+                else {
+                        alert('Username is in use. Please choose another username.');
+                        inputUsername.value = '';
+                        inputUsername.focus();
+                    }
+            }
+        }
+
+        /* When user is typing, emit typing to server. */
+
+    }, {
+        key: 'handleInputMessage',
+        value: function handleInputMessage(e) {
+            var username = this.state.username;
+            var socket = this.state.socket;
+            var typing = e.target.value ? true : false;
+
+            if (socket && username) {
+                /* Tell other users that this user is typing or not typing. */
+                socket.emit('userTyping', { username: username, typing: typing });
+            } else {
+                /* Socket or username hasn't been set yet' */
+            }
+        }
+
+        /* ------------------End chat events-------------------- */
+
         /* Converts the message to JSX HTML component. */
 
     }, {
@@ -20665,6 +20661,8 @@ var ChatApp = function (_React$Component) {
     }, {
         key: 'render',
         value: function render() {
+            var _this4 = this;
+
             var messages = this.state.messages.map(this.convertMessages, this);
             var users = this.state.users.map(this.convertUsers, this);
             var usersTyping = this.state.usersTyping.join(',');
@@ -20707,11 +20705,15 @@ var ChatApp = function (_React$Component) {
                             ),
                             _react2.default.createElement(
                                 'form',
-                                { id: 'usernameForm', name: 'usernameForm' },
+                                { id: 'usernameForm', name: 'usernameForm', onSubmit: function onSubmit(e) {
+                                        return _this4.handleUsernameFormSubmit(e);
+                                    } },
                                 _react2.default.createElement(
                                     'div',
                                     { className: 'col-sm-9 nopad' },
-                                    _react2.default.createElement('input', { type: 'text', id: 'username', name: 'username', className: 'form-control', placeholder: 'Enter name', required: true, autoFocus: true })
+                                    _react2.default.createElement('input', { type: 'text', id: 'username', className: 'form-control', placeholder: 'Enter name', ref: function ref(_ref) {
+                                            return _this4.inputUsername = _ref;
+                                        }, required: true, autoFocus: true })
                                 ),
                                 _react2.default.createElement(
                                     'div',
@@ -20739,14 +20741,20 @@ var ChatApp = function (_React$Component) {
                             ),
                             _react2.default.createElement(
                                 'form',
-                                { name: 'chatForm' },
+                                { name: 'chatForm', onSubmit: function onSubmit(e) {
+                                        return _this4.handleChatFormSubmit(e);
+                                    } },
                                 _react2.default.createElement(
                                     'div',
                                     { className: 'form-group row nopad' },
                                     _react2.default.createElement(
                                         'div',
                                         { className: 'col-sm-10 nopad' },
-                                        _react2.default.createElement('input', { type: 'text', id: 'message', className: 'form-control', placeholder: 'Message' })
+                                        _react2.default.createElement('input', { type: 'text', id: 'message', className: 'form-control', placeholder: 'Message', onInput: function onInput(e) {
+                                                return _this4.handleInputMessage(e);
+                                            }, ref: function ref(_ref2) {
+                                                return _this4.inputMessage = _ref2;
+                                            } })
                                     ),
                                     _react2.default.createElement(
                                         'div',

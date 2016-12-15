@@ -29,120 +29,33 @@ class ChatApp extends React.Component
         /* Make sure there is a socket in the state. */
         if (socket)
         {
-            /* Get the chat and username forms. */
-            let chatForm = document.forms.chatForm,
-                usernameForm = document.forms.usernameForm;
+            this.initSocketOnEvents(socket);
 
-            if (chatForm && usernameForm)
+            /* Event listener for user refreshing or exiting the page. */
+            window.onbeforeunload = () => 
             {
-                this.initEventListeners(socket, chatForm, usernameForm);
-                this.initSocketOn(socket);
-            }
-        }
+                let username = this.state.username;
 
-        /* Event listener for user refreshing or exiting the page. */
-        window.onbeforeunload = () => 
-        {
-            let username = this.state.username;
-
-            /* Make sure the user has joined the chat room before emitting to others*/
-            if (username && socket)
-            {
-                /*  */
-                socket.emit('userDisconnected', {username: username});
-
-                /* Let others know that you are not typing anymore. */
-                socket.emit('userTyping', {username: username, typing: false});
-
-                /* Let others know you went offline */
-                socket.emit('sendMessage', {content: username + ' left the chat room.'});
-            }
-
-        }
-    }
-
-    /* Add event listeners for typing and sending messages */
-    initEventListeners(socket, chatForm, usernameForm)
-    {
-        let chatMessages = document.getElementById('chatMessages'),
-            messageInput = document.getElementById('message'),
-            usernameInput = document.getElementById('username');
-
-        /* On username form submit, emit user connected to others */
-        /* Users are only allowed to set username once. */
-        usernameForm.addEventListener('submit', (e) =>
-        {
-            e.preventDefault();
-
-            let username = usernameForm.username.value;
-
-            if (socket && username)
-            {
-
-                /* If username is not taken */
-                if (this.state.users.indexOf(username) == -1)
+                /* Make sure the user has joined the chat room before emitting to others*/
+                if (username && socket)
                 {
-                    this.setState({username: username});
-                    socket.emit('userConnected', {username: username});
-                    socket.emit('sendMessage', {content: username + ' joined the chat room.'});
+                    /*  */
+                    socket.emit('userDisconnected', {username: username});
 
-                    /* Remove this form and input. Do not allow user to change usernames. */
-                    usernameForm.removeEventListener('submit', () => {});
-                    usernameForm.remove(usernameInput);
-                    usernameForm.remove(usernameForm.submit);
-                    messageInput.focus();
-                } 
+                    /* Let others know that you are not typing anymore. */
+                    socket.emit('userTyping', {username: username, typing: false});
 
-                /* If username is taken */
-                else
-                {
-                    alert('Username is in use. Please choose another username.');
-                    usernameInput.value = '';
-                    usernameInput.focus();
+                    /* Let others know you went offline */
+                    socket.emit('sendMessage', {content: username + ' left the chat room.'});
                 }
+
             }
-        });
+        }
 
-        /* On chat form submit, emit post message to others. */
-        chatForm.addEventListener('submit', (e) =>
-        {
-            e.preventDefault();
-            let messageInput = chatForm.message;
-            let username = this.state.username;
-
-            /**/
-            if (socket && username)
-            {
-                /* Sends message to other users and then resets & refocuses on input. */
-                socket.emit('sendMessage', {sender: username, content: messageInput.value});
-                socket.emit('userTyping', {username: username, typing: false});
-                messageInput.value = '';
-                messageInput.focus();
-            } else
-            {
-                alert('Please set a username first.');
-            }
-        });
-
-        /* When user is typing, emit typing to server. */
-        messageInput.addEventListener('input', (e) =>
-        {
-            let typing = messageInput.value ? true : false;
-            let username = this.state.username;
-
-            if (socket && username)
-            {
-                /* Tell other users that this user is typing or not typing. */
-                socket.emit('userTyping', {username: username, typing: typing});
-            } else
-            {
-                /* Socket or username hasn't been set yet' */
-            }
-        });
     }
 
     /* Listen for emittions from server for incoming inquiries. */
-    initSocketOn(socket)
+    initSocketOnEvents(socket)
     {
         /* Update messages in chat box. */
         socket.on('updateMessages', (data) => {this.onUpdateMessages(data);});
@@ -245,6 +158,85 @@ class ChatApp extends React.Component
 
     /* ------------------End on socket methods-------------------- */
 
+    /* ------------------Chat events-------------------- */
+
+    /* On chat form submit, emit post message to others. */
+    handleChatFormSubmit(e)
+    {
+        e.preventDefault();
+        let username = this.state.username;
+        let socket = this.state.socket;
+        let inputMessage = this.inputMessage;
+
+        if (socket && username)
+        {
+            if (inputMessage.value)
+            {
+                /* Sends message to other users and then resets & refocuses on input. */
+                socket.emit('sendMessage', {sender: username, content: inputMessage.value});
+                socket.emit('userTyping', {username: username, typing: false});
+                inputMessage.value = '';
+                inputMessage.focus();
+            }
+        } else
+        {
+            alert('Please set a username first.');
+        }
+    }
+
+    /* On username form submit, emit user connected to others */
+    /* Users are only allowed to set username once. */
+    handleUsernameFormSubmit(e)
+    {
+        e.preventDefault();
+        let username = inputUsername.value;
+        let socket = this.state.socket;
+        let inputUsername = this.inputUsername;
+
+        if (socket && username)
+        {
+            /* If username is not taken */
+            if (this.state.users.indexOf(username) == -1)
+            {
+                this.setState({username: username});
+                socket.emit('userConnected', {username: username});
+                socket.emit('sendMessage', {content: username + ' joined the chat room.'});
+
+                /* Remove this form and input. Do not allow user to change usernames. */
+                e.target.remove(inputUsername);
+                e.target.remove(e.target.submit);
+                this.inputMessage.focus();
+            } 
+
+            /* If username is taken */
+            else
+            {
+                alert('Username is in use. Please choose another username.');
+                inputUsername.value = '';
+                inputUsername.focus();
+            }
+        }
+    }
+
+    /* When user is typing, emit typing to server. */
+    handleInputMessage(e)
+    {
+        let username = this.state.username;
+        let socket = this.state.socket;
+        let typing = e.target.value ? true : false;
+
+        if (socket && username)
+        {
+            /* Tell other users that this user is typing or not typing. */
+            socket.emit('userTyping', {username: username, typing: typing});
+        } else
+        {
+            /* Socket or username hasn't been set yet' */
+        }
+    }
+    
+    /* ------------------End chat events-------------------- */
+
     /* Converts the message to JSX HTML component. */
     convertMessages(e, i)
     { 
@@ -317,12 +309,12 @@ class ChatApp extends React.Component
                                 <h3>Users in chat room</h3>
                                 <ul className="userList">{users}</ul>
                             </div>
-                            <form id="usernameForm" name="usernameForm">
+                            <form id="usernameForm" name="usernameForm" onSubmit={(e) => this.handleUsernameFormSubmit(e)}>
                                 <div className="col-sm-9 nopad">
-                                <input type="text" id="username" name="username" className="form-control" placeholder="Enter name" required autoFocus></input>
+                                    <input type="text" id="username" className="form-control" placeholder="Enter name" ref={(ref) => this.inputUsername = ref} required autoFocus></input>
                                 </div>
                                 <div className="col-sm-3 nopad">
-                                <button type="submit" name="submit" className="form-control btn btn-success">Go</button>
+                                    <button type="submit" name="submit" className="form-control btn btn-success">Go</button>
                                 </div>
                             </form>
                         </div>
@@ -331,10 +323,10 @@ class ChatApp extends React.Component
                                 {messages}
                                 <span className="typing">{usersTyping}</span>
                             </div>
-                            <form name="chatForm">
+                            <form name="chatForm" onSubmit={(e) => this.handleChatFormSubmit(e)}>
                                 <div className="form-group row nopad">
                                     <div className="col-sm-10 nopad">
-                                        <input type="text" id="message" className="form-control" placeholder="Message"></input>
+                                        <input type="text" id="message" className="form-control" placeholder="Message" onInput={(e) => this.handleInputMessage(e)} ref={(ref) => this.inputMessage = ref}></input>
                                     </div>
                                     <div className="col-sm-2 nopad">
                                         <button type="submit" className="form-control btn btn-primary">Send</button>
