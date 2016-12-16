@@ -1,6 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
+import SideBar from './SideBar';
+import ChatBox from './ChatBox';
+
 class ChatApp extends React.Component
 {
     constructor(props)
@@ -39,19 +42,13 @@ class ChatApp extends React.Component
                 /* Make sure the user has joined the chat room before emitting to others*/
                 if (username && socket)
                 {
-                    /*  */
+                    /* Let others know you went offline and that you are not typing anymore.*/
                     socket.emit('userDisconnected', {username: username});
-
-                    /* Let others know that you are not typing anymore. */
                     socket.emit('userTyping', {username: username, typing: false});
-
-                    /* Let others know you went offline */
                     socket.emit('sendMessage', {content: username + ' left the chat room.'});
                 }
-
             }
         }
-
     }
 
     /* Listen for emittions from server for incoming inquiries. */
@@ -117,7 +114,8 @@ class ChatApp extends React.Component
         } else
         {
             /* Error: user not in list */
-            alert('Error: user is not in the list');
+            // alert('Error: user is not in the list');
+            // console.log('User not in list.');
         }
     }
 
@@ -161,12 +159,10 @@ class ChatApp extends React.Component
     /* ------------------Chat events-------------------- */
 
     /* On chat form submit, emit post message to others. */
-    handleChatFormSubmit(e)
+    handleChatFormSubmit(inputMessage)
     {
-        e.preventDefault();
         let username = this.state.username;
         let socket = this.state.socket;
-        let inputMessage = this.inputMessage;
 
         if (socket && username)
         {
@@ -186,13 +182,10 @@ class ChatApp extends React.Component
 
     /* On username form submit, emit user connected to others */
     /* Users are only allowed to set username once. */
-    handleUsernameFormSubmit(e)
+    handleUsernameFormSubmit(e, inputUsername)
     {
-        e.preventDefault();
-        let username = inputUsername.value;
         let socket = this.state.socket;
-        let inputUsername = this.inputUsername;
-
+        let username = inputUsername.value;
         if (socket && username)
         {
             /* If username is not taken */
@@ -205,7 +198,7 @@ class ChatApp extends React.Component
                 /* Remove this form and input. Do not allow user to change usernames. */
                 e.target.remove(inputUsername);
                 e.target.remove(e.target.submit);
-                this.inputMessage.focus();
+                this.ChatBox.focusInputMessage();
             } 
 
             /* If username is taken */
@@ -219,11 +212,11 @@ class ChatApp extends React.Component
     }
 
     /* When user is typing, emit typing to server. */
-    handleInputMessage(e)
+    handleInputMessage(inputMessage)
     {
         let username = this.state.username;
         let socket = this.state.socket;
-        let typing = e.target.value ? true : false;
+        let typing = inputMessage.value ? true : false;
 
         if (socket && username)
         {
@@ -294,8 +287,7 @@ class ChatApp extends React.Component
     {
         let messages = this.state.messages.map(this.convertMessages, this);
         let users = this.state.users.map(this.convertUsers, this);
-        let usersTyping = this.state.usersTyping.join(',');
-        usersTyping += usersTyping ? ' is typing...' : '';
+        let usersTyping = this.createUsersTypingString(this.state.usersTyping);
 
         return (
             <div className="">
@@ -304,36 +296,17 @@ class ChatApp extends React.Component
                 </div>
                 <div className="chat-app container center-block">
                     <div className="row">
-                        <div className="col-sm-3 nopad">
-                            <div id="chatUsers" className="container-fluid">
-                                <h3>Users in chat room</h3>
-                                <ul className="userList">{users}</ul>
-                            </div>
-                            <form id="usernameForm" name="usernameForm" onSubmit={(e) => this.handleUsernameFormSubmit(e)}>
-                                <div className="col-sm-9 nopad">
-                                    <input type="text" id="username" className="form-control" placeholder="Enter name" ref={(ref) => this.inputUsername = ref} required autoFocus></input>
-                                </div>
-                                <div className="col-sm-3 nopad">
-                                    <button type="submit" name="submit" className="form-control btn btn-success">Go</button>
-                                </div>
-                            </form>
-                        </div>
-                        <div className="col-sm-9 nopad">
-                            <div id="chatMessages">
-                                {messages}
-                                <span className="typing">{usersTyping}</span>
-                            </div>
-                            <form name="chatForm" onSubmit={(e) => this.handleChatFormSubmit(e)}>
-                                <div className="form-group row nopad">
-                                    <div className="col-sm-10 nopad">
-                                        <input type="text" id="message" className="form-control" placeholder="Message" onInput={(e) => this.handleInputMessage(e)} ref={(ref) => this.inputMessage = ref}></input>
-                                    </div>
-                                    <div className="col-sm-2 nopad">
-                                        <button type="submit" className="form-control btn btn-primary">Send</button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
+                        <SideBar
+                            users = {users}
+                            submitUsernameForm = {(e, inputUsername) => this.handleUsernameFormSubmit(e, inputUsername)}
+                        />
+                        <ChatBox
+                            ref = {(ref) => this.ChatBox = ref}
+                            messages = {messages}
+                            usersTyping = {usersTyping}
+                            submitChatForm = {(e) => this.handleChatFormSubmit(e)}
+                            onInputMessage = {(e) => this.handleInputMessage(e)}
+                        />
                     </div>
                 </div>
             </div>

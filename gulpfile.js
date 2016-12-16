@@ -1,7 +1,8 @@
 var gulp = require('gulp'),
     gulp_babel = require('gulp-babel'),
-    gulp_browserify = require('gulp-browserify'),
-    gulp_sass = require('gulp-sass');
+    gulp_sass = require('gulp-sass'),
+    browserify = require('browserify'),
+    source = require('vinyl-source-stream');
 
 var outputDir = 'app/',
     process = 'process/',
@@ -20,11 +21,28 @@ gulp.task('app', function()
 /* Compiles all ES6 and React sources. */
 gulp.task('js', function()
 {
-    gulp.src(jsDir + '*.js')
-        .pipe(gulp_babel({presets: ["es2015", "react"]}))
-        .pipe(gulp_browserify())
-        .pipe(gulp.dest(outputDir + 'public/js'));
+    // gulp.src(jsDir + '*.js')
+    //     .pipe(gulp_babel({presets: ["es2015", "react"]}))
+    //     .pipe(gulp_browserify())
+    //     .pipe(gulp.dest(outputDir + 'public/js'));
 
+    // gulp.src(jsDir + 'ChatApp.js')
+    //     .pipe(gulp_browserify
+    //     ({
+    //         transform: ['babelify', {presets: ["es2015", "react"]}],
+    //         debug: true
+    //     }))
+    //     .pipe(gulp.dest(outputDir + 'public/js'));
+
+    browserify({
+        entries: ['./process/js/ChatApp.js'],
+        extensions: ['.js'],
+        debug: true
+    })
+    .transform('babelify', {presets: ['es2015', 'react']})
+    .bundle()
+    .pipe(source('ChatApp.js'))
+    .pipe(gulp.dest(outputDir + 'public/js'));
 });
 
 gulp.task('sass', function()
