@@ -20,7 +20,9 @@ class ChatApp extends React.Component
             /* Array of all users currently typing */
             usersTyping: [],
             /* Current user's username */
-            username: ''
+            username: '',
+            /* Toggles the visibility of the username form. */
+            usernameFormVisible: true
         };
     }
 
@@ -171,8 +173,6 @@ class ChatApp extends React.Component
                 /* Sends message to other users and then resets & refocuses on input. */
                 socket.emit('sendMessage', {sender: username, content: inputMessage.value});
                 socket.emit('userTyping', {username: username, typing: false});
-                inputMessage.value = '';
-                inputMessage.focus();
             }
         } else
         {
@@ -195,9 +195,6 @@ class ChatApp extends React.Component
                 socket.emit('userConnected', {username: username});
                 socket.emit('sendMessage', {content: username + ' joined the chat room.'});
 
-                /* Remove this form and input. Do not allow user to change usernames. */
-                e.target.remove(inputUsername);
-                e.target.remove(e.target.submit);
                 this.ChatBox.focusInputMessage();
             } 
 
@@ -226,6 +223,12 @@ class ChatApp extends React.Component
         {
             /* Socket or username hasn't been set yet' */
         }
+    }
+
+    toggleUsernameForm()
+    {
+        let usernameFormVisible = !this.state.usernameFormVisible;
+        this.setState({usernameFormVisible: usernameFormVisible});
     }
     
     /* ------------------End chat events-------------------- */
@@ -288,6 +291,7 @@ class ChatApp extends React.Component
         let messages = this.state.messages.map(this.convertMessages, this);
         let users = this.state.users.map(this.convertUsers, this);
         let usersTyping = this.createUsersTypingString(this.state.usersTyping);
+        let usernameFormVisible = this.state.usernameFormVisible;
 
         return (
             <div className="">
@@ -298,6 +302,8 @@ class ChatApp extends React.Component
                     <div className="row">
                         <SideBar
                             users = {users}
+                            usernameFormVisible = {usernameFormVisible}
+                            toggleUsernameForm = {() => this.toggleUsernameForm()}
                             submitUsernameForm = {(e, inputUsername) => this.handleUsernameFormSubmit(e, inputUsername)}
                         />
                         <ChatBox

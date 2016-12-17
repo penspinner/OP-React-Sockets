@@ -7,6 +7,8 @@ class ChatBox extends React.Component
         e.preventDefault();
         let inputMessage = this.inputMessage;
         this.props.submitChatForm(inputMessage);
+        inputMessage.value = '';
+        this.focusInputMessage();
     }
 
     onInputMessage(e)
