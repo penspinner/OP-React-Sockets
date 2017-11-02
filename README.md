@@ -1,4 +1,6 @@
 # OP-React-Sockets
+
+[![Greenkeeper badge](https://badges.greenkeeper.io/Penspinner/OP-React-Sockets.svg)](https://greenkeeper.io/)
 This is a simple chat application made with React and Socket.IO.
 
 ### Instructions 
